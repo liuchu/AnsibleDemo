@@ -1,0 +1,72 @@
+---
+- name: role common
+  tasks:
+    
+    - name: Test ssh connection to hosts
+      ping: 
+
+    - name: Create basic directory
+      become: yes
+#      include_vars: vars/main.yml
+      file:
+        path: {{ common_config.base_directory }}
+        state: directory
+        mode: 755
+        owner: {{ common_config.test_user_create.owner }}
+        group: {{ common_config.test_user_create.owner }}
+
+    - name: create user {{ common_config.owner }}
+      become: yes
+      user: 
+        name: {{ common_config.test_user_create.owner }}
+        home: {{ common_config.test_user_create.home }}
+        groups: {{ common_config.test_user_create.groups }}
+        state: present
+
+    - name: Ensure .ssh directory exists
+      become: yes
+      file:
+        path: "{{ common_config.test_user_create.home }}/.ssh"
+        state: directory
+        mode: 0600
+        owner: "{{ common_config.test_user_create.owner }}"
+        group: "{{ common_config.test_user_create.groups }}"
+
+    - name: Add ssh private key to test user
+      become: yes
+      copy:
+        content: "{{ common_config.test_user_create.private_key }}"
+        dest: "{{ common_config.test_user_create.home }}/.ssh/id_rsa"
+        mode: 0600
+        owner: "{{ common_config.test_user_create.owner }}"
+        group: "{{ common_config.test_user_create.groups }}"
+
+    - name: Add ssh public key to test user
+      become: yes
+      copy:
+        content: "{{ common_config.test_user_create.home.public_key }}"
+        dest: "{{ common_config.test_user_create.home }}/.ssh/id_rsa.pub"
+        mode: 0600
+        owner: "{{ common_config.test_user_create.owner }}"
+        group: "{{ common_config.test_user_create.groups }}"
+
+    - name: Add public key into 
+      become: yes
+      authorized_key:
+        user: "{{ common_config.test_user_create.owner }}"
+        key: "{{ common_config.test_user_create.home }}/.ssh/id_rsa"
+#       key: "{{ lookup('file', '/etc/ansible/roles/authorized_keys') }}"  # 从本地authorized_keys文件读取公钥内容
+        state: present
+        exclusive: no
+
+    - name: install apache
+      become: yes
+      yum:
+        name: httpd
+        state: present
+
+    - name: install git
+      become: yes
+      yum:
+        name: git
+        state: present
